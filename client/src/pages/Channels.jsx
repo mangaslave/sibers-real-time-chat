@@ -20,7 +20,7 @@ export default function Channels() {
   };
 
   return (
-    <div>
+    <div className="w-screen min-h-screen flex flex-col justify-center items-center bg-[#f7f3ee] px-4">
       <h2>Channels</h2>
 
       <input

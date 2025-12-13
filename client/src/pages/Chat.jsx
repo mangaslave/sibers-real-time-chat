@@ -34,7 +34,7 @@ export default function Chat() {
   };
 
   return (
-    <div>
+    <div className="w-screen min-h-screen flex flex-col justify-center items-center bg-[#f7f3ee] px-4">
       <h3>Chat</h3>
 
       {messages.map((m, i) => (

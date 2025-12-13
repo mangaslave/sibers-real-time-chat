@@ -13,33 +13,35 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
+        <div className="bg-[#f7f3ee] w-full min-h-screen">
+          <Routes>
 
-          <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
-          <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<Login />} />
 
-          <Route
-            path="/channels"
-            element={
-              <PrivateRoute>
-                <Channels />
-              </PrivateRoute>
-            }
-          />
+            <Route
+              path="/channels"
+              element={
+                <PrivateRoute>
+                  <Channels />
+                </PrivateRoute>
+              }
+            />
 
-          <Route
-            path="/channels/:id"
-            element={
-              <PrivateRoute>
-                <Chat />
-              </PrivateRoute>
-            }
-          />
+            <Route
+              path="/channels/:id"
+              element={
+                <PrivateRoute>
+                  <Chat />
+                </PrivateRoute>
+              }
+            />
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
 
-        </Routes>
+          </Routes>
+        </div>
       </BrowserRouter>
     </AuthProvider>
   );
