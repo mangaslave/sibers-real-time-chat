@@ -1,33 +1,34 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
+import cors from "cors";
 
 import routes from "./routes/index.js";
 import { loadUsers } from "./services/usersService.js";
 import config from "./config.js";
+import registerSocketEvents from "./socket/socketEvents.js";
 
 const app = express();
+
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
-// Preload users data
+// Preload users
 await loadUsers();
 
-// Setup routes
+// Routes
 app.use("/", routes);
 
+// HTTP + Socket
 const server = http.createServer(app);
+
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: { origin: "http://localhost:5173" },
 });
 
-// TODO: add socket events later
-io.on("connection", () => console.log("Socket connected"));
-
-app.get('/', (req, res) => {
-  res.send('Hello! Server is running.');
-});
-
+// Register socket events
+registerSocketEvents(io);
 
 server.listen(config.PORT, () =>
-  console.log("Server running on port", config.PORT)
+  console.log(`Server running on port ${config.PORT}`)
 );
