@@ -3,12 +3,12 @@ import FaceClosed from "../assets/loginBack.png";
 
 export default function Pet({ isFocused }) {
   return (
-    <div className="relative w-full max-w-xs aspect-square mx-auto">
+    <div className="relative w-1/2 max-w-xs aspect-square mx-auto">
       {/* Face open */}
       <img
         src={Face}
         alt="Face open"
-        className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
+        className={`absolute inset-0 w-full h-11/12 object-contain transition-opacity duration-300 ${
           isFocused ? "opacity-0" : "opacity-100"
         }`}
       />
@@ -17,7 +17,7 @@ export default function Pet({ isFocused }) {
       <img
         src={FaceClosed}
         alt="Face closed"
-        className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
+        className={`absolute inset-0 w-full h-11/12 object-contain transition-opacity duration-300 ${
           isFocused ? "opacity-100" : "opacity-0"
         }`}
       />
