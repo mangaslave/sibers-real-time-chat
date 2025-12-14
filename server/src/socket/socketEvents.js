@@ -16,8 +16,9 @@ export default function socketEvents(io) {
       io.to(channelId).emit("members_updated", channelMembers[channelId]);
     });
 
-    socket.on("send_message", ({ channelId, message }) => {
-      channelMessages[channelId].push(message);
+    socket.on("send_message", ({ channelId, user, text }) => {
+      const message = addMessage(channelId, user, text);
+
       io.to(channelId).emit("new_message", message);
     });
 
