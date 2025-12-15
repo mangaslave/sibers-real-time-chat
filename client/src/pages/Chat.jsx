@@ -177,8 +177,10 @@ export default function Chat() {
         email: m.email,
         avatar: m.avatar || null,
     }));
+    
     setChannel({ ...updated.data, membersData, admin: updated.data.members[0] });
 
+    setIsMember(true);
   };
 
 
