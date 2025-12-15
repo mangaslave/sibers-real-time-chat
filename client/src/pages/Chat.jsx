@@ -2,48 +2,102 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
+import {
+  fetchChannelById,
+  fetchChannelMessages,
+  joinChannel as joinChannelApi,
+} from "../api/channelsApi";
+
 
 export default function Chat() {
+  console.log("=== CHAT COMPONENT RENDERING ===");
+
   const { id } = useParams();
   const navigate = useNavigate();
   const socket = useSocket();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+
+  console.log("Chat - id:", id);
+  console.log("Chat - user:", user);
+  console.log("Chat - socket:", socket);
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [isMember, setIsMember] = useState(true);
 
+  const [channel, setChannel] = useState(null);
+
+
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    if (!socket) return;
+    console.log("=== CHAT LOAD EFFECT ===");
+    console.log("User object:", user);
+    console.log("Token:", token);
+    console.log("Channel ID:", id);
+    async function loadData() {
+        try {
+        const channelRes = await fetchChannelById(token, id);
+        console.log("Channel loaded:", channelRes.data);
+        const channel = channelRes.data;
+        
+        console.log("Channel loaded:", channel);
+        console.log("Channel members:", channel.members);
+        console.log("User email:", user.email);
+        console.log("Is member?", channel.members.includes(user.email));
+
+        setChannel(channel);
+        setIsMember(channel.members.includes(user.email));
+
+        const messagesRes = await fetchChannelMessages(token, id);
+        setMessages(messagesRes.data);
+        } catch (err) {
+        console.error("Failed to load channel", err);
+        }
+    }
+
+    if (token) loadData();
+    }, [id, user]);
+
+
+
+  useEffect(() => {
+    if (!socket || !user) return;
 
     socket.emit("join_channel", { channelId: id, user });
 
-    socket.on("new_message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    const handler = (msg) => {
+        setMessages((prev) => [...prev, msg]);
+    };
 
-    return () => socket.off("new_message");
-  }, [socket, id, user]);
+    socket.on("new_message", handler);
+
+    return () => socket.off("new_message", handler);
+  }, [socket, id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = () => {
-    if (!text.trim()) return;
+    if (!socket || !text.trim()) return;
 
-    const message = {
-      text,
-      user: user.name,
-      userId: user.id,
-      timestamp: Date.now(),
-    };
+    socket.emit("send_message", {
+        channelId: id,
+        user,
+        text,
+    });
 
-    socket.emit("send_message", { channelId: id, message });
     setText("");
   };
+
+  const handleJoin = async () => {
+    await joinChannelApi(token, id, user.email);
+    const updated = await fetchChannelById(token, id);
+    setChannel(updated.data);
+    setIsMember(true);
+  };
+
 
   return (
     <div className="w-screen h-screen flex justify-center bg-[#f7f3ee]">
@@ -54,7 +108,7 @@ export default function Chat() {
           onClick={() => navigate(`/channels/${id}/info`)}
           className="flex items-center justify-between px-4 py-3 border-b cursor-pointer"
         >
-          <span className="font-semibold text-[#727272]"># channel-name</span>
+          <span className="font-semibold text-[#727272]"># {channel?.name}</span>
           <span className="text-xl">⋮</span>
         </div>
 
@@ -85,20 +139,24 @@ export default function Chat() {
 
         {/* Footer */}
         {!isMember ? (
-          <button className="m-4 py-3 rounded-full bg-blue-500 text-white font-semibold">
+          <button 
+            onClick={handleJoin}
+            className="m-4 py-3 rounded-full bg-blue-500 text-white font-semibold">
             Join channel
           </button>
         ) : (
           <div className="flex items-center gap-2 px-3 py-3 border-t text-[#727272]">
             <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Message..."
-              className="flex-1 px-4 py-2 rounded-full border outline-none focus:ring-2 focus:ring-green-400 text-[#727272]"
+                value={text}
+                disabled={!socket}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={socket ? "Message..." : "Connecting..."}
+                className="flex-1 px-4 py-2 rounded-full border outline-none disabled:opacity-50"
             />
             <button
-              onClick={sendMessage}
-              className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center"
+                disabled={!socket}
+                onClick={sendMessage}
+                className="w-10 h-10 rounded-full bg-green-500 text-white disabled:opacity-50"
             >
               ➤
             </button>
