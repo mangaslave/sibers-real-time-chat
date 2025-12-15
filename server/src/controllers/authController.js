@@ -1,5 +1,6 @@
 import { getUserByEmail } from "../services/usersService.js";
 
+// Controller for user login
 export const login = (req, res) => {
   const { email } = req.body;
 
@@ -10,6 +11,7 @@ export const login = (req, res) => {
 
   const token = Buffer.from(email).toString("base64");
 
+  // Return token and user info
   res.json({
     token,
     user: {

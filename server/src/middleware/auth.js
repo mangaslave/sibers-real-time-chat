@@ -1,5 +1,6 @@
 import { getUserByEmail } from "../services/usersService.js";
 
+// Middleware to authenticate user based on token
 export const auth = (req, res, next) => {
   
   const authHeader = req.headers.authorization;

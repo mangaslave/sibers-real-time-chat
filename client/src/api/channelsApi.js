@@ -2,11 +2,13 @@ import axios from "axios";
 
 const API = "http://localhost:5001";
 
+// Fetch all channels data
 export const fetchChannels = (token) => {
   return axios.get(`${API}/channels`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
 export const createChannel = (token, name) => {
   return axios.post(
     `${API}/channels`,
@@ -35,12 +37,16 @@ export const fetchChannelMessages = (token, channelId) => {
   });
 };
 
+// Member-related API calls
+
+// Fetch channel members
 export const channelMember = (token, channelId) => {
   return axios.get(`${API}/channels/${channelId}/members`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 };
 
+// Remove a member from a channel
 export const removeMember = (token, channelId, email) => {
   return axios.delete(`${API}/channels/${channelId}/members/${email}`, {
     headers: { Authorization: `Bearer ${token}` }
