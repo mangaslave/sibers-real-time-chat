@@ -2,22 +2,27 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import { useSocket } from "../context/SocketContext";
+import { useState, useMemo } from "react";
+import Face from "../assets/loginFront.png";
 
 export default function ChannelMembersModal({ isVisible, onClose, channel }) {
   const { user } = useAuth();
   const socket = useSocket();
 
-  if (!isVisible || !channel || !Array.isArray(channel.membersData)) {
-    return null;
-  }
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const members = Array.isArray(channel.membersData)
-    ? channel.membersData
-    : [];
+  const filteredMembers = useMemo(() => {
+    if (!channel || !Array.isArray(channel.membersData)) return [];
+    const term = searchTerm.toLowerCase();
+    return channel.membersData.filter(
+      (m) =>
+        (m.name && m.name.toLowerCase().includes(term)) ||
+        (m.email && m.email.toLowerCase().includes(term))
+    );
+  }, [channel, searchTerm]);
 
   const handleRemove = (memberEmail) => {
     if (!window.confirm(`Remove ${memberEmail} from this channel?`)) return;
-
     if (!socket) return;
 
     socket.emit("kick_user", {
@@ -25,6 +30,10 @@ export default function ChannelMembersModal({ isVisible, onClose, channel }) {
       targetEmail: memberEmail,
     });
   };
+
+  if (!isVisible || !channel || !Array.isArray(channel.membersData)) {
+    return null;
+  }
 
   return createPortal(
     <div
@@ -49,21 +58,32 @@ export default function ChannelMembersModal({ isVisible, onClose, channel }) {
           </button>
         </div>
 
+        {/* Search Bar */}
+        <div className="px-6 py-3 border-b border-gray-200">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search members..."
+            className="w-full px-4 py-2 border rounded-lg outline-none text-[#727272]"
+          />
+        </div>
+
         {/* Members List */}
         <div className="px-6 py-4 space-y-4">
-          {members.length === 0 ? (
+          {filteredMembers.length === 0 ? (
             <div className="text-center text-gray-500 py-4">
               No members found.
             </div>
           ) : (
-            members.map((member) => (
+            filteredMembers.map((member) => (
               <div
                 key={member.email}
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={member.avatar || "/default-avatar.png"}
+                    src={member.avatar || Face}
                     alt={member.name || member.email}
                     className="w-10 h-10 rounded-full object-cover"
                   />

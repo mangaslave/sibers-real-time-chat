@@ -9,6 +9,7 @@ import {
 } from "../api/channelsApi";
 import { useAuth } from "../context/useAuth";
 import ChannelMembersModal from "../components/ChannelMembersModal";
+import Face from "../assets/loginFront.png";
 
 
 export default function Chat() {
@@ -44,16 +45,24 @@ export default function Chat() {
         const admin = channel.members[0];
 
         const membersRes = await channelMember(token, id);
-        const membersData = membersRes.data;
+        const membersData = membersRes.data.map(m => ({
+            name: m.name,
+            email: m.email,
+            avatar: m.avatar || null,
+        }));
 
         console.log("Members data:", membersData);
         console.log("Admin data:", admin);
         console.log("Channel data:", channel);
 
+        // bugfix: channel data doesn't have membersData field with avatar info
+
         setChannel({ ...channel, membersData, admin});
         setIsMember(channel.members.includes(user.email));
 
+        console.log("Loading data for channel:", channel);
         const messagesRes = await fetchChannelMessages(token, id);
+        
         setMessages(messagesRes.data);
         } catch (err) {
         console.error("Failed to load channel", err);
@@ -86,8 +95,12 @@ export default function Chat() {
             ...prev,
             members: Array.from(new Set([...prev.members, newMember.email])),
             membersData: uniqueByEmail([
-            ...(prev.membersData || []),
-            newMember.profile,
+                ...(prev.membersData || []),
+                {
+                    name: newMember.profile.name,
+                    email: newMember.profile.email,
+                    avatar: newMember.profile.avatar || null,
+                },
             ]),
         }));
     };
@@ -142,7 +155,12 @@ export default function Chat() {
 
     socket.emit("send_message", {
         channelId: id,
-        user,
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar
+        },
         text,
     });
 
@@ -153,9 +171,14 @@ export default function Chat() {
   const handleJoin = async () => {
     await joinChannelApi(token, id, user.email);
     const updated = await fetchChannelById(token, id);
-    setChannel(updated.data);
+    const membersRes = await channelMember(token, id);
+    const membersData = membersRes.data.map(m => ({
+        name: m.name,
+        email: m.email,
+        avatar: m.avatar || null,
+    }));
+    setChannel({ ...updated.data, membersData, admin: updated.data.members[0] });
 
-    setIsMember(true);
   };
 
 
@@ -180,22 +203,36 @@ export default function Chat() {
             const isMe = m.userId === user.id;
 
             return (
-              <div
-                key={i}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow 
-                    ${isMe
-                      ? "bg-[#ddb665] text-white rounded-br-sm" 
-                      : "bg-stone-200 text-[#727272] rounded-bl-sm"}
-                  `}
-                >
-                  {m.text}
+                <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className="flex items-start gap-2 max-w-[70%]">
+                    {/* Avatar for others */}
+                    {!isMe && (
+                    <img
+                        src={m.userAvatar || Face}
+                        alt={m.userName || m.userEmail}
+                        className="w-8 h-8 rounded-full object-cover mt-1"
+                    />
+                    )}
+
+                    <div
+                    className={`px-4 py-2 rounded-2xl text-sm shadow
+                        ${isMe
+                        ? "bg-[#ddb665] text-white rounded-br-sm"
+                        : "bg-stone-200 text-[#727272] rounded-bl-sm"}
+                    `}
+                    >
+                    {/* Show name except logged user */}
+                    {!isMe && (
+                        <div className="text-xs font-semibold text-[#555] mb-1">
+                        {m.userName || m.userEmail}
+                        </div>
+                    )}
+                    <div>{m.text}</div>
+                    </div>
                 </div>
-              </div>
-            );
-          })}
+                </div>
+                );
+            })}
           <div ref={bottomRef} />
         </div>
 

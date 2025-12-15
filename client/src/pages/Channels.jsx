@@ -13,6 +13,7 @@ export default function Channels() {
   const navigate = useNavigate();
 
   // Function to fetch and update channels list
+  // bugfix: add socket dependency to refresh list on new channel creation
   const getChannels = async () => {
     setLoadingChannels(true);
     try {
