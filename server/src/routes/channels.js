@@ -6,19 +6,19 @@ import {
   getChannelsController,
   joinChannelController,
   removeMemberController,
-  getChannelMessagesController
+  getChannelMessagesController,
+  getChannelbyIdController,
+  channelMemberController
 } from "../controllers/channelsController.js";
 
 const router = express.Router();
 
 router.get("/", auth, getChannelsController);
-
 router.post("/", auth, createChannelController);
-
-router.post("/:channelId/members", auth, joinChannelController);
-
+router.get("/:channelId", auth, getChannelbyIdController);
+router.post("/:channelId/join", auth, joinChannelController);
 router.get("/:channelId/messages", auth, getChannelMessagesController);
-
+router.get("/:channelId/members", auth, channelMemberController);
 router.delete(
   "/:channelId/members/:email",
   auth,

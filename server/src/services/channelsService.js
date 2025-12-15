@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { getMessages } from "../services/chatService.js";
+import { getUserByEmail } from "./usersService.js";
 
 let channels = [];
 
@@ -40,7 +41,22 @@ export const removeMemberFromChannel = (channelId, email) => {
   return ch;
 };
 
-export const getChannelMessages = (req, res) => {
-  const { id } = req.params;
-  res.json(getMessages(id));
+export const getChannelMessages = (channelId) => {
+  return getMessages(channelId);
 };
+
+export function getMembers(channelId) {
+  const ch = getChannelById(channelId);
+  if (!ch) return null;
+
+  // Map emails to full user profiles
+  const membersData = ch.members.map((memberEmail) => {
+    const userProfile = getUserByEmail(memberEmail);
+    return userProfile;
+  });
+
+  console.log("Members data:", membersData);
+
+  return membersData;
+}
+
