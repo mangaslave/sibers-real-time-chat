@@ -1,5 +1,6 @@
 import { getChannelById } from "../services/channelsService.js";
 
+// Middleware to check if the user is the admin of the channel
 export const channelAdminOnly = (req, res, next) => {
   const { channelId } = req.params;
   const channel = getChannelById(channelId);

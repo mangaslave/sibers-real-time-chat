@@ -1,24 +1,34 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 const SocketContext = createContext(null);
 
+// SocketProvider component to wrap around the app and provide socket instance
 export const SocketProvider = ({ children }) => {
-  const socketRef = useRef(null);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    socketRef.current = io("http://localhost:5001");
+    const s = io("http://localhost:5001", {
+      transports: ["websocket"],
+    });
+
+    console.log("socket created");
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSocket(s);
 
     return () => {
-      socketRef.current.disconnect();
+      console.log("socket disconnected");
+      s.disconnect();
     };
   }, []);
 
   return (
-    <SocketContext.Provider value={socketRef.current}>
+    <SocketContext.Provider value={socket}>
       {children}
     </SocketContext.Provider>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSocket = () => useContext(SocketContext);
