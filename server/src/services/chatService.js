@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 
 const messages = {};
 
+// Add a new message to a channel with user details
 export function addMessage(channelId, user, text) {
   if (!messages[channelId]) {
     messages[channelId] = [];

@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 
 const SocketContext = createContext(null);
 
+// SocketProvider component to wrap around the app and provide socket instance
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
