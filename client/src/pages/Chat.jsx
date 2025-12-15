@@ -1,52 +1,56 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import {
+    channelMember,
   fetchChannelById,
   fetchChannelMessages,
   joinChannel as joinChannelApi,
 } from "../api/channelsApi";
+import { useAuth } from "../context/useAuth";
+import ChannelMembersModal from "../components/ChannelMembersModal";
 
 
 export default function Chat() {
-  console.log("=== CHAT COMPONENT RENDERING ===");
-
   const { id } = useParams();
   const navigate = useNavigate();
   const socket = useSocket();
   const { user, token } = useAuth();
 
-  console.log("Chat - id:", id);
-  console.log("Chat - user:", user);
-  console.log("Chat - socket:", socket);
-
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [isMember, setIsMember] = useState(true);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+
 
   const [channel, setChannel] = useState(null);
 
 
   const bottomRef = useRef(null);
 
-  useEffect(() => {
-    console.log("=== CHAT LOAD EFFECT ===");
-    console.log("User object:", user);
-    console.log("Token:", token);
-    console.log("Channel ID:", id);
+  const uniqueByEmail = (list = []) => {
+    const map = new Map();
+    list.forEach(item => map.set(item.email, item));
+    return Array.from(map.values());
+  };
+
+  // Load channel info and messages
+  useEffect(() => {;
     async function loadData() {
         try {
         const channelRes = await fetchChannelById(token, id);
-        console.log("Channel loaded:", channelRes.data);
         const channel = channelRes.data;
-        
-        console.log("Channel loaded:", channel);
-        console.log("Channel members:", channel.members);
-        console.log("User email:", user.email);
-        console.log("Is member?", channel.members.includes(user.email));
 
-        setChannel(channel);
+        const admin = channel.members[0];
+
+        const membersRes = await channelMember(token, id);
+        const membersData = membersRes.data;
+
+        console.log("Members data:", membersData);
+        console.log("Admin data:", admin);
+        console.log("Channel data:", channel);
+
+        setChannel({ ...channel, membersData, admin});
         setIsMember(channel.members.includes(user.email));
 
         const messagesRes = await fetchChannelMessages(token, id);
@@ -57,24 +61,78 @@ export default function Chat() {
     }
 
     if (token) loadData();
-    }, [id, user]);
+    }, [id, user, token]);
 
 
-
+  // Real-time updates for messages and members
   useEffect(() => {
-    if (!socket || !user) return;
+    if (!socket || !user || !channel) return;
 
+    if (!channel.members.includes(user.email)) {
+        setIsMember(false);
+        return;
+    }
+
+    // Join room
     socket.emit("join_channel", { channelId: id, user });
 
-    const handler = (msg) => {
-        setMessages((prev) => [...prev, msg]);
+    // New message
+    const messageHandler = (msg) => setMessages((prev) => [...prev, msg]);
+    socket.on("new_message", messageHandler);
+
+    // Member joined
+    const memberJoinedHandler = (newMember) => {
+        setChannel((prev) => ({
+            ...prev,
+            members: Array.from(new Set([...prev.members, newMember.email])),
+            membersData: uniqueByEmail([
+            ...(prev.membersData || []),
+            newMember.profile,
+            ]),
+        }));
     };
 
-    socket.on("new_message", handler);
+    socket.on("member_joined", memberJoinedHandler);
 
-    return () => socket.off("new_message", handler);
-  }, [socket, id]);
+    // Member removed
+    const memberRemovedHandler = ({ email }) => {
+      setChannel(prev => ({
+        ...prev,
+        members: [...prev.members.filter(m => m !== email)],
+        membersData: [...prev.membersData.filter(m => m.email !== email)],
+      }));
+    };
 
+    socket.on("member_removed", memberRemovedHandler);
+
+    // Removed member
+    const youWereRemovedHandler = ({ channelId }) => {
+        if (channelId !== id) return;
+
+        setIsMember(false);
+        setMessages([]);
+        setText("");
+
+        setChannel(prev => ({
+            ...prev,
+            members: prev.members.filter(m => m !== user.email),
+            membersData: prev.membersData.filter(m => m.email !== user.email),
+        }));
+
+        navigate("/channels");
+    };
+
+    socket.on("you_were_removed", youWereRemovedHandler);
+
+    return () => {
+      socket.off("new_message", messageHandler);
+      socket.off("member_joined", memberJoinedHandler);
+      socket.off("member_removed", memberRemovedHandler);
+      socket.off("you_were_removed", youWereRemovedHandler);
+    };
+  }, [socket, id, user, channel, setIsMember, navigate]);
+
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -91,25 +149,29 @@ export default function Chat() {
     setText("");
   };
 
+  // Handle joining the channel
   const handleJoin = async () => {
     await joinChannelApi(token, id, user.email);
     const updated = await fetchChannelById(token, id);
     setChannel(updated.data);
+
     setIsMember(true);
   };
 
 
   return (
-    <div className="w-screen h-screen flex justify-center bg-[#f7f3ee]">
-      <div className="w-full max-w-[390px] bg-white flex flex-col">
+    <div className="w-screen h-screen flex justify-center bg-[#f7f3ee]"> 
+      <div className="w-full max-w-97.5 flex flex-col">
 
         {/* Header */}
-        <div
-          onClick={() => navigate(`/channels/${id}/info`)}
-          className="flex items-center justify-between px-4 py-3 border-b cursor-pointer"
+        <div className="flex items-center justify-between px-3 py-3 border-b-2 border-amber-50 sticky top-0 z-10 cursor-pointer" 
         >
-          <span className="font-semibold text-[#727272]"># {channel?.name}</span>
-          <span className="text-xl">⋮</span>
+          <div>
+            <button onClick={() => navigate(-1)} className="text-2xl text-[#727272]">←</button>
+          </div>
+          <span className="text-xl font-semibold text-[#727272]">{channel?.name}</span>
+
+          <button onClick={() => setIsMembersModalOpen(true)} className="text-2xl text-[#727272]">⋮</button>
         </div>
 
         {/* Messages */}
@@ -123,10 +185,10 @@ export default function Chat() {
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow
+                  className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow 
                     ${isMe
-                      ? "bg-green-500 text-white rounded-br-sm"
-                      : "bg-gray-100 text-gray-800 rounded-bl-sm"}
+                      ? "bg-[#ddb665] text-white rounded-br-sm" 
+                      : "bg-stone-200 text-[#727272] rounded-bl-sm"}
                   `}
                 >
                   {m.text}
@@ -141,28 +203,41 @@ export default function Chat() {
         {!isMember ? (
           <button 
             onClick={handleJoin}
-            className="m-4 py-3 rounded-full bg-blue-500 text-white font-semibold">
+            className="m-4 py-3 rounded-full bg-[#ddb665] hover:bg-[#c29c5a] transition text-white font-semibold"> 
             Join channel
           </button>
         ) : (
-          <div className="flex items-center gap-2 px-3 py-3 border-t text-[#727272]">
+          <div className="flex items-center gap-2 px-3 py-3 border-t-2 border-amber-50 text-[#727272]">
             <input
                 value={text}
                 disabled={!socket}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={socket ? "Message..." : "Connecting..."}
-                className="flex-1 px-4 py-2 rounded-full border outline-none disabled:opacity-50"
+                className="flex-1 px-4 py-2 rounded-full border-none outline-none text-[#727272] bg-white shadow-inner disabled:opacity-50" 
             />
             <button
-                disabled={!socket}
+                disabled={!socket || !text.trim()}
                 onClick={sendMessage}
-                className="w-10 h-10 rounded-full bg-green-500 text-white disabled:opacity-50"
+                className="w-10 h-10 rounded-full bg-[#ddb665] text-white flex items-center justify-center hover:bg-[#c29c5a] transition disabled:opacity-50"
             >
-              ➤
+              <span className="translate-x-0.5">➤</span> 
             </button>
           </div>
         )}
       </div>
+      <ChannelMembersModal
+        key={channel?.membersData?.length}
+        isVisible={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        channel={channel}
+        // onMemberRemoved={(removedEmail) => {
+        //     setChannel((prev) => ({
+        //     ...prev,
+        //     members: prev.members.filter((m) => m !== removedEmail),
+        //     membersData: prev.membersData.filter((m) => m.email !== removedEmail),
+        //     }));
+        // }}
+        />
     </div>
   );
 }

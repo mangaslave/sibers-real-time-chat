@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Pet from "../components/Pet.jsx";
 import { login as loginApi } from "../api/authApi";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth.js";
 
 export default function Login() {
   const [isFocused, setIsFocused] = useState(false);
@@ -19,8 +19,8 @@ export default function Login() {
 
   return (
     <div className="w-screen min-h-screen flex flex-col justify-center items-center bg-[#f7f3ee] px-4">
-        <div className="w-full max-w-[390px] flex flex-col items-center">
-            <h1 className="text-2xl font-bold mb-4 text-[#727272]">chat.</h1>
+        <div className="w-full max-w-97.5 flex flex-col items-center">
+            <h1 className="text-6xl font-bold mb-12 text-[#727272] px-4">chat.</h1>
 
             <Pet isFocused={isFocused}/>
 
@@ -32,12 +32,12 @@ export default function Login() {
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    className="min-w-11/12 h-12 rounded-full border border-gray-200 shadow-md outline-none text-center focus:ring-1"
+                    className="min-w-11/12 h-12 rounded-full shadow-md outline-none text-center text-[#727272]"
                 />
                 
                 <button
                     onClick={handleLogin}
-                    className="w-full h-12 bg-gray-600 text-white rounded-full font-semibold shadow-lg active:shadow-none transition-all duration-200"
+                    className="w-full h-12 text-white bg-[#727272] rounded-full font-semibold shadow-lg active:shadow-none transition-all duration-200 hover:bg-[#ddb665]"
                 >
                     Login
                 </button>

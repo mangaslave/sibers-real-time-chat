@@ -34,3 +34,15 @@ export const fetchChannelMessages = (token, channelId) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+export const channelMember = (token, channelId) => {
+  return axios.get(`${API}/channels/${channelId}/members`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};
+
+export const removeMember = (token, channelId, email) => {
+  return axios.delete(`${API}/channels/${channelId}/members/${email}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};

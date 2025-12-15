@@ -13,6 +13,7 @@ export const SocketProvider = ({ children }) => {
 
     console.log("socket created");
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSocket(s);
 
     return () => {
@@ -28,4 +29,5 @@ export const SocketProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSocket = () => useContext(SocketContext);
