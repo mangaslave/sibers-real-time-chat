@@ -10,7 +10,8 @@ export const createChannel = (name, creatorEmail) => {
     id: uuid(),
     name,
     creatorEmail,
-    members: [creatorEmail]
+    members: [creatorEmail],
+    
   };
 
   channels.push(newChannel);

@@ -10,7 +10,9 @@ export function addMessage(channelId, user, text) {
   const message = {
     id: uuid(),
     userId: user.id,
-    user: user.name,
+    userName: user.name,          
+    userAvatar: user.avatar || null, 
+    userEmail: user.email, 
     text: text.trim(),
     timestamp: Date.now(),
   };
